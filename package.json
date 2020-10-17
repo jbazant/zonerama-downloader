@@ -1,0 +1,24 @@
+{
+  "name": "zonerama_downloader",
+  "version": "0.0.1",
+  "description": "Allows to download gallery from zonerama",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": ["zonerama", "image downloader"],
+  "author": "Jiri Bazant",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbazant/zonerama-downloader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jbazant/zonerama-downloader/issues"
+  },
+  "homepage": "https://github.com/jbazant/zonerama-downloader",
+  "dependencies": {
+    "axios": "^0.20.0"
+  }
+}
