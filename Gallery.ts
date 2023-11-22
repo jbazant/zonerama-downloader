@@ -58,7 +58,9 @@ export class Gallery {
 
     if (status === 200) {
       if (!data.items) {
-        throw new Error('Invalid gallery json response: ' + JSON.stringify(data));
+        const responseData = JSON.stringify(data);
+        const errorResponsePreview = responseData.length > 200 ? (responseData.substring(0, 200) + '...') : responseData;
+        throw new Error('Invalid gallery json response: ' + errorResponsePreview );
       }
       console.log('DONE');
 
@@ -67,7 +69,7 @@ export class Gallery {
         name: it.photoId ? (it.photoId + '.jpg') : null,
       })).filter(({name, url}) => name && url);
     } else {
-      throw new Error('Invalid gallery json response');
+      throw new Error('Unable to fetch gallery data. Response status: ' + status);
     }
   }
 
