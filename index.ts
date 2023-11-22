@@ -20,20 +20,51 @@ async function getAlbumUrl(url: string) {
   const {albumUrl} = await inquirer.prompt([{
     type: 'input',
     name: 'albumUrl',
-    message: 'Enter the url of the album',
+    message: 'Enter the url of the album:',
   }]);
 
   return albumUrl;
 
 }
 
-async function run(url: string, {maxItems, outDir}: { maxItems: string, outDir: string }) {
+async function getPassword() {
+  const {albumPass} = await inquirer.prompt([{
+    type: 'input',
+    name: 'albumPass',
+    message: 'Enter the password of the album:',
+  }]);
+
+  return albumPass;
+}
+
+async function run(url: string, password: string | undefined, {maxItems, outDir}: {
+  maxItems: string,
+  outDir: string
+}) {
   try {
     assureDirExists(outDir);
+
     const albumUrl = await getAlbumUrl(url);
 
     const album = new Gallery(albumUrl, parseInt(maxItems, 10), outDir);
-    await album.process();
+    if (password) {
+      album.setPassword(password);
+    }
+
+    try {
+      await album.process();
+    } catch (e: any) {
+      if (e.name === 'AlbumLoadingError') {
+        console.log(chalk.magenta('Album is probably protected by password!'));
+        const password = await getPassword();
+        if (password) {
+          album.setPassword(password);
+        }
+        await album.process();
+      } else {
+        throw e;
+      }
+    }
 
     console.log(chalk.green('SUCCESS'));
   } catch (e: any) {
@@ -47,6 +78,7 @@ const program = new Command();
 program
   .name('zonerama-downloader')
   .argument('[url]', 'url of the album')
+  .argument('[password]', 'password of the album')
   .description('Download all images from Zonerama album')
   .option('-o, --out-dir <directory>', 'directory to save the images', './images')
   .option('-m, --max-items <number>', 'maximum number of images to download', '500')

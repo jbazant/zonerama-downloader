@@ -1,6 +1,7 @@
 import axios, { RawAxiosRequestHeaders } from 'axios';
 import chalk from 'chalk';
 import * as fs from 'fs';
+import { AlbumLoadingError } from './AlbumLoadingError.ts';
 
 type ImageData = {
   url: string,
@@ -8,43 +9,36 @@ type ImageData = {
 };
 
 export class Gallery {
-  albumId: string | undefined;
-  maxItems = 0;
-  url : string
-  localDirectory: string;
+  private readonly albumId: string | undefined;
+  private readonly domain: string;
+  private password: string | undefined;
+  private headers: Partial<RawAxiosRequestHeaders> | undefined;
 
-  constructor(albumUrl: string, maxItems: number, localDirectory: string) {
-    this.url = albumUrl;
-    const match = albumUrl.match(/Album\/([0-9]+)/);
+  constructor(private readonly url: string, private readonly maxItems: number, private readonly localDirectory: string) {
+    this.domain = url.match(/(https?:\/\/[^/]+)/)?.[1] || 'https://www.zonerama.com';
+    const match = url.match(/Album\/([0-9]+)/);
     if (match && match[1]) {
       this.albumId = match[1];
     }
 
-    if (!this.albumId) {
+    if (!this.albumId || !this.domain) {
       throw new Error('Invalid Gallery URL');
     }
-
-    this.maxItems = maxItems;
-    this.localDirectory = localDirectory;
   }
 
-  async prepareHeaders() {
-    console.log(chalk.yellow('Fetching gallery cookie...'));
+  private async prepareHeaders() {
     const response = await axios.get(this.url);
 
     if (response.status === 200) {
-      console.log('DONE');
-      return {Cookie: response.headers['set-cookie']};
+      this.headers = {Cookie: response.headers['set-cookie']};
     }
   }
 
-
-  async fetchGalleryData(headers: Partial<RawAxiosRequestHeaders>): Promise<ImageData[]> {
-    console.log(chalk.yellow('Downloading gallery data...'));
+  private async fetchGalleryData(): Promise<ImageData[]> {
     const {status, data} = (await axios.post(
       'https://www.zonerama.com/JSON/FlowLayout_PhotosInAlbum?albumId=' + this.albumId,
-      {startIndex: 0, count: this.maxItems },
-      {headers, responseType: 'json'},
+      {startIndex: 0, count: this.maxItems},
+      {headers: this.headers, responseType: 'json'},
     )) as {
       status: number, data: {
         items: {
@@ -60,9 +54,8 @@ export class Gallery {
       if (!data.items) {
         const responseData = JSON.stringify(data);
         const errorResponsePreview = responseData.length > 200 ? (responseData.substring(0, 200) + '...') : responseData;
-        throw new Error('Invalid gallery json response: ' + errorResponsePreview );
+        throw new AlbumLoadingError('Invalid gallery json response: ' + errorResponsePreview);
       }
-      console.log('DONE');
 
       return data.items.map(it => ({
         url: it.image ? it.image.replace('{height}', String(it.height)).replace('{width}', String(it.width)) : null,
@@ -74,12 +67,11 @@ export class Gallery {
   }
 
 
-  async downloadImages(headers: Record<string, any>, images: ImageData[]) {
-    console.log(chalk.yellow('Downloading images...'));
+  private async downloadImages(images: ImageData[]) {
 
     const downloads = images.map(({url, name}) => axios.get(url, {
         responseType: 'stream',
-        headers,
+        headers: this.headers,
       })
         .then((response) => {
           const localPath = this.localDirectory + '/' + name;
@@ -88,17 +80,50 @@ export class Gallery {
           return new Promise((resolve, reject) => {
             outputStream.on('finish', resolve);
             outputStream.on('error', reject);
-          })
+          });
         }),
     );
     await Promise.all(downloads);
 
-    console.log(`${downloads.length} images saved to ${this.localDirectory}`);
+    return downloads.length;
+
   }
 
-  async process() {
-      const headers = await this.prepareHeaders();
-      const images = await this.fetchGalleryData(headers);
-      await this.downloadImages(headers, images);
+  private async unlockAlbum() {
+    const {status} = await axios.post(this.domain + '/Web/UnlockAlbum', {value: this.password}, {
+      headers: this.headers,
+      params: {ID: this.albumId},
+    });
+
+    if (status !== 200) {
+      throw new Error('Unable to unlock album. Response status: ' + status);
+    }
+  }
+
+  public async process() {
+    if (!this.headers) {
+      console.log(chalk.yellow('Fetching gallery cookie...'));
+      await this.prepareHeaders();
+      console.log('DONE');
+    }
+
+    if (this.password) {
+      console.log(chalk.yellow('Unlocking album...'));
+      await this.unlockAlbum();
+      console.log('DONE');
+    }
+
+    console.log(chalk.yellow('Downloading gallery data...'));
+    const images = await this.fetchGalleryData();
+    console.log('DONE');
+
+    console.log(chalk.yellow('Downloading images...'));
+    const imagesDownloaded = await this.downloadImages(images);
+    console.log(`${imagesDownloaded} images saved to ${this.localDirectory}`);
+  }
+
+
+  public setPassword(value: string | undefined) {
+    this.password = value;
   }
 }
