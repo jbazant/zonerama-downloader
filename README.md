@@ -2,12 +2,12 @@
 Download all images from gallery on [zonerama.com](https://zonerama.com) even when author forbids download.
 
 ## Installation
-1. Requires node.js to be installed.
+1. Requires node.js and yarn to be installed.
 1. Download it using git `git clone git@github.com:jbazant/zonerama-downloader.git`.
-1. Run `yarn install` (or `npm isntall` if you prefer).
+1. Run `yarn install` (or `npm isntall` if you prefer) from inside the project directory.
 
 ## Usage
-1. Run `yarn start`.
+1. Run `yarn start` from inside the project directory.
 1. Enter gallery url when prompted (e.g. `https://www.zonerama.com/username/Album/123456`).
 
 **OR**
