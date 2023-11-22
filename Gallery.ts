@@ -15,7 +15,7 @@ export class Gallery {
 
   constructor(albumUrl: string, maxItems: number, localDirectory: string) {
     this.url = albumUrl;
-    const match = albumUrl.match(/Album\/([0-9]+)\?/);
+    const match = albumUrl.match(/Album\/([0-9]+)/);
     if (match && match[1]) {
       this.albumId = match[1];
     }
@@ -57,6 +57,9 @@ export class Gallery {
     };
 
     if (status === 200) {
+      if (!data.items) {
+        throw new Error('Invalid gallery json response: ' + JSON.stringify(data));
+      }
       console.log('DONE');
 
       return data.items.map(it => ({

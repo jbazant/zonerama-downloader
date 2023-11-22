@@ -8,7 +8,7 @@ Download all images from gallery on [zonerama.com](https://zonerama.com) even wh
 
 ## Usage
 1. Run `yarn start` from inside the project directory.
-1. Enter gallery url when prompted (e.g. `https://www.zonerama.com/username/Album/123456`).
+1. Enter gallery url when prompted (e.g. `https://www.zonerama.com/username/Album/123456` or `https://www.zonerama.com/username/Album/123456?secret=ABC123` for private galeries).
 
 **OR**
 
