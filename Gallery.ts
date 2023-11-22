@@ -43,7 +43,7 @@ export class Gallery {
     console.log(chalk.yellow('Downloading gallery data...'));
     const {status, data} = (await axios.post(
       'https://www.zonerama.com/JSON/FlowLayout_PhotosInAlbum?albumId=' + this.albumId,
-      {startIndex: 0, count: this.maxItems + 1},
+      {startIndex: 0, count: this.maxItems },
       {headers, responseType: 'json'},
     )) as {
       status: number, data: {
