@@ -3,10 +3,22 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import { AlbumLoadingError } from './AlbumLoadingError.ts';
 
+type GalleryDataResponse = {
+  items: {
+    image?: string;
+    height: number;
+    width: number;
+    photoId?: string;
+  }[];
+};
+
 type ImageData = {
   url: string;
   name: string;
 };
+
+const GALLERY_DATA = '/JSON/FlowLayout_PhotosInAlbum';
+const UNLOCK_ALBUM = '/Web/UnlockAlbum';
 
 export class Gallery {
   private readonly albumId: string | undefined;
@@ -19,10 +31,10 @@ export class Gallery {
     private readonly maxItems: number,
     private readonly localDirectory: string,
   ) {
-    this.domain = url.match(/(https?:\/\/[^/]+)/)?.[1] || 'https://www.zonerama.com';
-    const match = url.match(/Album\/([0-9]+)/);
-    if (match && match[1]) {
-      this.albumId = match[1];
+    const match = url.match(/(https?:\/\/[^/]+)\/[^?]*Album\/([0-9]+)*/);
+    if (match && match.length === 3) {
+      this.domain = match[1];
+      this.albumId = match[2];
     }
 
     if (!this.albumId || !this.domain) {
@@ -39,21 +51,11 @@ export class Gallery {
   }
 
   private async fetchGalleryData(): Promise<ImageData[]> {
-    const { status, data } = (await axios.post(
-      'https://www.zonerama.com/JSON/FlowLayout_PhotosInAlbum?albumId=' + this.albumId,
+    const { status, data } = await axios.post<GalleryDataResponse>(
+      this.domain + GALLERY_DATA,
       { startIndex: 0, count: this.maxItems },
-      { headers: this.headers, responseType: 'json' },
-    )) as {
-      status: number;
-      data: {
-        items: {
-          image?: string;
-          height: number;
-          width: number;
-          photoId?: string;
-        }[];
-      };
-    };
+      { headers: this.headers, responseType: 'json', params: { albumId: this.albumId } },
+    );
 
     if (status === 200) {
       if (!data.items) {
@@ -97,7 +99,7 @@ export class Gallery {
 
   private async unlockAlbum() {
     const { status } = await axios.post(
-      this.domain + '/Web/UnlockAlbum',
+      this.domain + UNLOCK_ALBUM,
       { value: this.password },
       {
         headers: this.headers,
@@ -120,6 +122,7 @@ export class Gallery {
     if (this.password) {
       console.log(chalk.yellow('Unlocking album...'));
       await this.unlockAlbum();
+      this.password = undefined;
       console.log('DONE');
     }
 

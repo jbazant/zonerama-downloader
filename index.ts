@@ -1,56 +1,34 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { existsSync, mkdirSync } from 'fs';
-import { Gallery } from './Gallery.ts';
-import inquirer from 'inquirer';
+import { assureDirExists } from './src/fsUtils.ts';
+import { Gallery } from './src/Gallery.ts';
+import { getAlbumUrl, getPassword } from './src/inquirerUtils.ts';
 
-function assureDirExists(dirPath: string) {
-  if (!existsSync(dirPath)) {
-    console.log(chalk.yellow('Creating output directory...'));
-    mkdirSync(dirPath);
-    console.log('DONE');
+type OptionsShape = {
+  maxItems: string;
+  outDir: string;
+};
+
+async function processAlbum(album: Gallery) {
+  try {
+    await album.process();
+  } catch (e: any) {
+    if (e.name === 'AlbumLoadingError') {
+      console.log(chalk.magenta('Album is probably protected by password!'));
+
+      const albumPass = await getPassword();
+      if (albumPass) {
+        album.setPassword(albumPass);
+      }
+
+      await album.process();
+    } else {
+      throw e;
+    }
   }
 }
 
-async function getAlbumUrl(url: string) {
-  if (url) {
-    return url;
-  }
-
-  const { albumUrl } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'albumUrl',
-      message: 'Enter the url of the album:',
-    },
-  ]);
-
-  return albumUrl;
-}
-
-async function getPassword() {
-  const { albumPass } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'albumPass',
-      message: 'Enter the password of the album:',
-    },
-  ]);
-
-  return albumPass;
-}
-
-async function run(
-  url: string,
-  password: string | undefined,
-  {
-    maxItems,
-    outDir,
-  }: {
-    maxItems: string;
-    outDir: string;
-  },
-) {
+async function run(url: string | undefined, password: string | undefined, { maxItems, outDir }: OptionsShape) {
   try {
     assureDirExists(outDir);
 
@@ -61,21 +39,7 @@ async function run(
       album.setPassword(password);
     }
 
-    try {
-      await album.process();
-    } catch (e: any) {
-      if (e.name === 'AlbumLoadingError') {
-        console.log(chalk.magenta('Album is probably protected by password!'));
-        const password = await getPassword();
-        if (password) {
-          album.setPassword(password);
-        }
-        await album.process();
-      } else {
-        throw e;
-      }
-    }
-
+    await processAlbum(album);
     console.log(chalk.green('SUCCESS'));
   } catch (e: any) {
     console.error(chalk.red('Error: ') + e.message);
@@ -84,7 +48,6 @@ async function run(
 }
 
 const program = new Command();
-
 program
   .name('zonerama-downloader')
   .argument('[url]', 'url of the album')
