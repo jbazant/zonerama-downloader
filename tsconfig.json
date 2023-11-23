@@ -4,12 +4,10 @@
     "moduleResolution": "Node",
     "target": "es5",
     "sourceMap": true,
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": true
   },
   "ts-node": {
     "esm": true
   },
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

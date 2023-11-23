@@ -17,30 +17,40 @@ async function getAlbumUrl(url: string) {
     return url;
   }
 
-  const {albumUrl} = await inquirer.prompt([{
-    type: 'input',
-    name: 'albumUrl',
-    message: 'Enter the url of the album:',
-  }]);
+  const { albumUrl } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'albumUrl',
+      message: 'Enter the url of the album:',
+    },
+  ]);
 
   return albumUrl;
-
 }
 
 async function getPassword() {
-  const {albumPass} = await inquirer.prompt([{
-    type: 'input',
-    name: 'albumPass',
-    message: 'Enter the password of the album:',
-  }]);
+  const { albumPass } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'albumPass',
+      message: 'Enter the password of the album:',
+    },
+  ]);
 
   return albumPass;
 }
 
-async function run(url: string, password: string | undefined, {maxItems, outDir}: {
-  maxItems: string,
-  outDir: string
-}) {
+async function run(
+  url: string,
+  password: string | undefined,
+  {
+    maxItems,
+    outDir,
+  }: {
+    maxItems: string;
+    outDir: string;
+  },
+) {
   try {
     assureDirExists(outDir);
 
